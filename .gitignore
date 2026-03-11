@@ -143,3 +143,5 @@ test-results/
 playwright-report/
 blob-report/
 playwright/.cache/
+apps/.DS_Store
+.DS_Store
