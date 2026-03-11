@@ -40,7 +40,7 @@ export function VGFDisplayProvider({
 
     const { transport, rawSocket } = useMemo(() => {
         const url = import.meta.env.DEV
-            ? "http://127.0.0.1:8080"
+            ? "http://localhost:8080"
             : window.location.origin
 
         const sessionId = getQueryParam("sessionId", "")
