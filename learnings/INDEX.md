@@ -24,6 +24,7 @@
 | VGF timers / schedulers | [017](./017-vgf-devscheduler-patterns.md), [032](./032-timer-management-patterns.md) |
 | VGF Socket.IO issues | [018](./018-vgf-socketio-message-workarounds.md) |
 | VGF dev mode | [014](./014-vgf-transport-sessions-setup.md), [017](./017-vgf-devscheduler-patterns.md), [020](./020-vgf-dev-session-lifecycle.md), [042](./042-dev-server-port-conflicts.md) |
+| VGF project scaffolding / new project | [043](./043-vgf-project-scaffolding.md) |
 | VGF 4.8.0 migration | [019](./019-vgf-480-phase-transitions.md) |
 | Three.js rendering | [021](./021-threejs-line-rendering.md), [022](./022-webgl-shader-uniforms.md) |
 | Shaders / GLSL | [022](./022-webgl-shader-uniforms.md), [023](./023-shader-coordinate-space-lighting.md), [024](./024-ring-shadow-ray-sphere-intersection.md), [025](./025-star-lighting-and-corona.md) |
@@ -154,6 +155,7 @@
 | [040](./040-retention-system-integration.md) | Retention System Integration | Critical | WP-010, WP-011 |
 | [041](./041-shared-helper-extraction.md) | Shared Helper Extraction | Medium | EM-028 |
 | [042](./042-dev-server-port-conflicts.md) | Dev Server Port Conflicts | High | EM-011 |
+| [043](./043-vgf-project-scaffolding.md) | VGF Project Scaffolding — Type Mismatches and Version Gaps | High | TokenRaider |
 
 ---
 

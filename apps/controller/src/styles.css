@@ -1,0 +1,280 @@
+:root {
+  --bg: #0a0a1a;
+  --bg-surface: #14142b;
+  --text-primary: #f0f0f5;
+  --text-secondary: #8888aa;
+  --accent: #4af;
+  --accent-glow: rgba(68, 170, 255, 0.3);
+  --danger: #f44;
+  --success: #4f4;
+  --radius: 12px;
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+#root {
+  height: 100%;
+  padding: var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);
+}
+
+/* --- Scenes --- */
+
+.scene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 16px;
+  gap: 20px;
+}
+
+/* --- Loading / Error --- */
+
+.loading-screen,
+.error-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 24px;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.error-screen h1 {
+  color: var(--danger);
+  margin-bottom: 12px;
+  font-size: 1.4rem;
+}
+
+/* --- Lobby --- */
+
+.game-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--accent);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.lobby-status {
+  font-size: 1.1rem;
+  color: var(--text-secondary);
+}
+
+.lobby-hint {
+  background: var(--bg-surface);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  max-width: 320px;
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+/* --- HUD --- */
+
+.hud {
+  display: flex;
+  width: 100%;
+  max-width: 400px;
+  justify-content: space-between;
+}
+
+.hud-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.hud-label {
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-secondary);
+}
+
+.hud-value {
+  font-size: 1.5rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+/* --- Mic Button --- */
+
+.mic-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  border: 3px solid var(--accent);
+  background: var(--bg-surface);
+  color: var(--accent);
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+
+.mic-button:active {
+  background: var(--accent);
+  color: var(--bg);
+  box-shadow: 0 0 30px var(--accent-glow);
+}
+
+/* --- D-pad --- */
+
+.dpad {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpad-middle-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.dpad-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius);
+  border: 2px solid var(--text-secondary);
+  background: var(--bg-surface);
+  color: var(--text-primary);
+  font-size: 1.4rem;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.dpad-btn:active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--bg);
+}
+
+.collect-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  border: 2px solid var(--success);
+  background: var(--bg-surface);
+  color: var(--success);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: background 0.1s;
+}
+
+.collect-btn:active {
+  background: var(--success);
+  color: var(--bg);
+}
+
+/* --- Score Display (Round End / Game Over) --- */
+
+.score-display {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  max-width: 300px;
+}
+
+.score-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--bg-surface);
+}
+
+.score-label {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.score-value {
+  font-size: 1.6rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.score-value.final {
+  font-size: 2rem;
+  color: var(--accent);
+}
+
+/* --- Action Button --- */
+
+.action-btn {
+  min-width: 200px;
+  min-height: 56px;
+  padding: 16px 32px;
+  border-radius: var(--radius);
+  border: none;
+  background: var(--accent);
+  color: var(--bg);
+  font-size: 1.1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+
+.action-btn:active {
+  opacity: 0.8;
+}
+
+/* --- Round End / Game Over headings --- */
+
+.round-end h1,
+.game-over h1 {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--text-primary);
+}
