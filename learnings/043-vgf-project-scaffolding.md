@@ -84,6 +84,8 @@ When scaffolding a new VGF monorepo from `BUILDING_TV_GAMES.md`, dozens of issue
 - Server crashes with OOM after phase transition → check `endIf` runs before `onBegin`, add guards
 - Lobby skips instantly → check `endIf` isn't checking persistent state like `remoteMode`
 - No server logs on thunk dispatch → check Socket.IO connection is actually established
+- `PlatformInitializationError: usePlatformContext must be used within PlatformProvider` → controller's `useDeviceInfo()` requires PlatformProvider, which crashes in dev without `volley_hub_session_id`. Use `MaybePlatformProvider` pattern on controller too, and fall back to a static device ID in dev.
+- `Hub session ID not found in query parameters` → PlatformProvider crashes without `volley_hub_session_id` URL param. This param is only present when running inside the TV shell. Use conditional wrapping in dev.
 
 ## Prevention
 

@@ -3019,35 +3019,48 @@ Every controller app on the Volley platform **must** include these packages:
 
 ### 16.2 PlatformProvider for Controllers
 
-Both Cocomelon and Wheel of Fortune wrap their entire app in `PlatformProvider`. The controller version is simpler than the display version — no `MaybePlatformProvider` conditional needed because the controller always runs in a mobile browser (not on a TV shell), so `volley_hub_session_id` is not required.
+In production, the controller runs inside the Volley mobile shell which provides `volley_hub_session_id`. In dev mode (bare browser), this param is absent and `PlatformProvider` crashes with `Hub session ID not found in query parameters`.
+
+**Use the `MaybePlatformProvider` pattern on controllers too** — skip the SDK in dev when the hub session ID is absent:
 
 ```typescript
 // apps/controller/src/App.tsx
-import { PlatformProvider } from "@volley/platform-sdk/react"
+import type { ReactNode } from "react"
 
 const GAME_ID = import.meta.env.VITE_GAME_ID ?? "your-game-id"
 const STAGE = import.meta.env.VITE_PLATFORM_SDK_STAGE ?? "staging"
-const SEGMENT_WRITE_KEY = import.meta.env.VITE_SEGMENT_WRITE_KEY ?? ""
 
-export function App() {
+function MaybePlatformProvider({ children }: { children: ReactNode }) {
+    const params = new URLSearchParams(window.location.search)
+    if (!params.has("volley_hub_session_id")) return <>{children}</>
+
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { PlatformProvider } = require("@volley/platform-sdk/react")
     return (
         <PlatformProvider
             options={{
                 gameId: GAME_ID,
-                appVersion: __APP_VERSION__,  // Defined in vite.config.ts
+                appVersion: __APP_VERSION__,
                 stage: STAGE,
-                tracking: {
-                    segmentWriteKey: SEGMENT_WRITE_KEY,
-                },
             }}
         >
-            <ControllerRoot />
+            {children}
         </PlatformProvider>
+    )
+}
+
+export function App() {
+    return (
+        <MaybePlatformProvider>
+            <ControllerRoot />
+        </MaybePlatformProvider>
     )
 }
 ```
 
-> **Note:** Unlike the display app, the controller does NOT need the `MaybePlatformProvider` pattern because it never runs inside the TV shell. The `PlatformProvider` can be rendered unconditionally.
+> **IMPORTANT:** The original guide stated controllers do NOT need `MaybePlatformProvider`. This is wrong — `PlatformProvider` reads `volley_hub_session_id` from URL params and crashes without it, even on mobile. The conditional pattern is required for dev mode on BOTH display and controller apps.
+
+> **Device identity in dev mode:** When `PlatformProvider` is absent, `useDeviceInfo()` is unavailable. Use a static fallback device ID (e.g., `"controller-dev"`) for the VGF transport's `userId` parameter. Check for `volley_hub_session_id` before calling any Platform SDK hooks.
 
 ### 16.3 Device Identity
 
