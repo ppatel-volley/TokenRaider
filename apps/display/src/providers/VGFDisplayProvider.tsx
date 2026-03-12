@@ -43,7 +43,7 @@ export function VGFDisplayProvider({
             ? "http://localhost:8080"
             : window.location.origin
 
-        const sessionId = getQueryParam("sessionId", "")
+        const sessionId = getQueryParam("sessionId", import.meta.env.DEV ? "dev-test" : "")
         const userId = getQueryParam("userId", import.meta.env.DEV ? "display-dev" : "")
 
         console.log("[VGF] Creating transport", { url, sessionId, userId })

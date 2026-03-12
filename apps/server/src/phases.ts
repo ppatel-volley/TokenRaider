@@ -1,8 +1,9 @@
-import type { TokenRaiderState, Token } from "@token-raider/shared";
+import type { TokenRaiderState, Token, TreasureChest, ChestType } from "@token-raider/shared";
 import {
   TOKENS_PER_ROUND,
   TOKEN_BASE_VALUE,
   ROUND_BONUS_MULTIPLIER,
+  CHEST_SPAWN_COUNT,
 } from "@token-raider/shared";
 import type { GameServices } from "./services.js";
 
@@ -31,6 +32,24 @@ function randomArenaPosition(arenaSize: number): {
     y: 0,
     z: Math.random() * arenaSize - half,
   };
+}
+
+/** Generate treasure chests — half food, half morale. */
+function generateChests(count: number, arenaSize: number): TreasureChest[] {
+  const chests: TreasureChest[] = [];
+  const halfFood = Math.floor(count / 2);
+  for (let i = 0; i < count; i++) {
+    const pos = randomArenaPosition(arenaSize);
+    const type: ChestType = i < halfFood ? "food" : "morale";
+    chests.push({
+      id: `chest-${Date.now()}-${i}`,
+      x: pos.x,
+      z: pos.z,
+      type,
+      collected: false,
+    });
+  }
+  return chests;
 }
 
 /** Generate tokens for a round. */
@@ -107,18 +126,26 @@ export function createPhases(_services: GameServices) {
 
         c.reducerDispatcher("SET_TOKENS", { tokens });
         c.reducerDispatcher("START_TIMER", { timerStartedAt: Date.now() });
+        // Spawn treasure chests and reset crew for the round
+        const chests = generateChests(CHEST_SPAWN_COUNT, state.arenaSize);
+        c.reducerDispatcher("SET_TREASURE_CHESTS", { chests });
+        c.reducerDispatcher("RESET_CREW", {});
+        c.reducerDispatcher("DECAY_CREW_NEEDS", { deltaSeconds: 0, now: Date.now() });
         return c.getState();
       },
       endIf: (ctx: EndIfContext) => {
         const state = ctx.session.state;
 
-        // nextPhase requested
+        // nextPhase requested (from thunk — e.g. crew all abandoned)
         if (hasNextPhase(state)) return true;
 
         // Guard: onBegin hasn't run yet if no tokens exist.
-        // VGF PhaseRunner2 evaluates endIf BEFORE onBegin, so we must
-        // not trigger on tokensRemaining === 0 when tokens are absent.
         if (state.currentTokens.length === 0) return false;
+
+        // All crew abandoned → game over
+        if (state.crew.length > 0 && state.crew.every((m) => m.status === "abandoned")) {
+          return true;
+        }
 
         const {
           tokensRemaining,
@@ -138,7 +165,15 @@ export function createPhases(_services: GameServices) {
 
         return false;
       },
-      next: (ctx: EndIfContext) => ctx.session.state.nextPhase ?? "roundEnd",
+      next: (ctx: EndIfContext) => {
+        const state = ctx.session.state;
+        if (state.nextPhase) return state.nextPhase;
+        // All crew abandoned → game over
+        if (state.crew.length > 0 && state.crew.every((m) => m.status === "abandoned")) {
+          return "gameOver";
+        }
+        return "roundEnd";
+      },
     },
 
     roundEnd: {

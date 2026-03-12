@@ -1,6 +1,6 @@
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
-import { Euler, Matrix3, Uniform, Vector3 } from "three";
+import { Matrix3, Uniform, Vector3 } from "three";
 import type { SkyState } from "./shaders/SkyShaderMaterial";
 import { Skybox } from "./Skybox";
 import { OceanSurface } from "./OceanSurface";
@@ -9,83 +9,53 @@ import { SeaFloor } from "./SeaFloor";
 import Ship from "./Ship";
 import type { WaterlineInfo } from "./Ship";
 import { WaterParticles } from "./WaterParticles";
+import { WakeTrail } from "./WakeTrail";
+import { TreasureChestField } from "./TreasureChestField";
+import { AbandonShipBoat } from "./AbandonShipBoat";
+import type { ShipNavigation, TreasureChest, CrewMember } from "@token-raider/shared";
 
 /* ------------------------------------------------------------------ */
-/*  WASD + mouse-look FPS camera controller                           */
+/*  Fixed isometric camera that tracks the ship position               */
 /* ------------------------------------------------------------------ */
 
-const MOVE_SPEED = 30;
-const MOUSE_SENSITIVITY = 0.002;
+/** Camera offset from the ship — south of the ship looking north. */
+const CAMERA_OFFSET = new Vector3(0, 50, 80);
+const CAMERA_LERP = 0.06;
 
-function useFPSCamera() {
-  const { camera, gl } = useThree();
-  const keys = useRef<Set<string>>(new Set());
-  const euler = useRef(new Euler(0, 0, 0, "YXZ"));
-  const velocity = useRef(new Vector3());
+function useIsometricCamera(shipPosRef: React.MutableRefObject<{ x: number; z: number }>) {
+  const { camera } = useThree();
+  const initialized = useRef(false);
 
-  // Initialise camera position: near the ship, slightly elevated.
   useMemo(() => {
     camera.near = 0.1;
     camera.far = 5000;
-    camera.position.set(30, 8, 30);
-    camera.lookAt(0, 3, 0);
-    euler.current.setFromQuaternion(camera.quaternion, "YXZ");
     camera.updateProjectionMatrix();
   }, [camera]);
 
-  // Keyboard listeners.
-  useEffect(() => {
-    const onDown = (e: KeyboardEvent) => keys.current.add(e.code);
-    const onUp = (e: KeyboardEvent) => keys.current.delete(e.code);
-    window.addEventListener("keydown", onDown);
-    window.addEventListener("keyup", onUp);
-    return () => {
-      window.removeEventListener("keydown", onDown);
-      window.removeEventListener("keyup", onUp);
-    };
-  }, []);
+  useFrame(() => {
+    const target = shipPosRef.current;
 
-  // Pointer lock for mouse look.
-  useEffect(() => {
-    const canvas = gl.domElement;
-    const onClick = () => canvas.requestPointerLock();
-    canvas.addEventListener("click", onClick);
-
-    const onMove = (e: MouseEvent) => {
-      if (document.pointerLockElement !== canvas) return;
-      euler.current.y -= e.movementX * MOUSE_SENSITIVITY;
-      euler.current.x -= e.movementY * MOUSE_SENSITIVITY;
-      // Clamp pitch to avoid flipping.
-      euler.current.x = Math.max(-Math.PI / 2 + 0.01, Math.min(Math.PI / 2 - 0.01, euler.current.x));
-    };
-    document.addEventListener("mousemove", onMove);
-
-    return () => {
-      canvas.removeEventListener("click", onClick);
-      document.removeEventListener("mousemove", onMove);
-    };
-  }, [gl]);
-
-  // Movement each frame.
-  useFrame((_, delta) => {
-    const k = keys.current;
-    const forward = new Vector3(0, 0, -1).applyEuler(euler.current);
-    const right = new Vector3(1, 0, 0).applyEuler(euler.current);
-
-    velocity.current.set(0, 0, 0);
-    if (k.has("KeyW")) velocity.current.add(forward);
-    if (k.has("KeyS")) velocity.current.sub(forward);
-    if (k.has("KeyD")) velocity.current.add(right);
-    if (k.has("KeyA")) velocity.current.sub(right);
-    if (k.has("Space")) velocity.current.y += 1;
-    if (k.has("ShiftLeft") || k.has("ShiftRight")) velocity.current.y -= 1;
-
-    if (velocity.current.lengthSq() > 0) {
-      velocity.current.normalize().multiplyScalar(MOVE_SPEED * delta);
-      camera.position.add(velocity.current);
+    if (!initialized.current) {
+      // Snap on first frame
+      camera.position.set(
+        target.x + CAMERA_OFFSET.x,
+        CAMERA_OFFSET.y,
+        target.z + CAMERA_OFFSET.z,
+      );
+      camera.lookAt(target.x, 0, target.z);
+      initialized.current = true;
+      return;
     }
 
-    camera.quaternion.setFromEuler(euler.current);
+    // Smoothly follow the ship position, fixed orientation
+    const desiredX = target.x + CAMERA_OFFSET.x;
+    const desiredZ = target.z + CAMERA_OFFSET.z;
+
+    camera.position.x += (desiredX - camera.position.x) * CAMERA_LERP;
+    camera.position.y += (CAMERA_OFFSET.y - camera.position.y) * CAMERA_LERP;
+    camera.position.z += (desiredZ - camera.position.z) * CAMERA_LERP;
+
+    camera.lookAt(target.x, 0, target.z);
   });
 }
 
@@ -93,16 +63,28 @@ function useFPSCamera() {
 /*  OceanScene                                                        */
 /* ------------------------------------------------------------------ */
 
+interface AbandonBoatEntry {
+  id: string;
+  startX: number;
+  startZ: number;
+  directionAngle: number;
+}
+
+export interface OceanSceneProps {
+  navigation?: ShipNavigation;
+  treasureChests?: TreasureChest[];
+  crew?: CrewMember[];
+}
+
 /**
  * Self-contained ocean environment scene.
  *
  * Drop this into any R3F Canvas and it renders the full underwater /
- * ocean-surface / sky environment ported from the vanilla Three.js
- * ocean demo, with a ship model as the cinematic focal point.
+ * ocean-surface / sky environment with a ship model as the focal point.
  *
- * WASD + mouse look camera in dev mode. Click canvas to capture mouse.
+ * Fixed isometric camera tracks the ship as it sails.
  */
-export function OceanScene() {
+export function OceanScene({ navigation, treasureChests = [], crew = [] }: OceanSceneProps) {
   const dirToLight = useMemo(() => new Vector3(0, 1, 0), []);
   const rotationMatrix = useMemo(() => new Matrix3(), []);
   const cameraForward = useMemo(() => new Vector3(0, 0, -1), []);
@@ -110,6 +92,9 @@ export function OceanScene() {
 
   const [skyState, setSkyState] = useState<SkyState | null>(null);
   const [waterline, setWaterline] = useState<WaterlineInfo | null>(null);
+
+  /** Mutable ref for current ship world-space position (updated by Ship). */
+  const shipPosRef = useRef({ x: 0, z: 0 });
 
   const onSkyStateReady = useCallback((state: SkyState) => {
     setSkyState(state);
@@ -119,11 +104,16 @@ export function OceanScene() {
     setWaterline(info);
   }, []);
 
+  const onShipPositionUpdate = useCallback((x: number, z: number) => {
+    shipPosRef.current.x = x;
+    shipPosRef.current.z = z;
+  }, []);
+
   const { camera } = useThree();
   const timeRef = useRef(0);
 
-  // FPS camera controller (WASD + mouse look).
-  useFPSCamera();
+  // Fixed isometric camera following the ship.
+  useIsometricCamera(shipPosRef);
 
   // Advance shared time uniform and keep cameraForward in sync.
   useFrame((_, delta) => {
@@ -131,6 +121,44 @@ export function OceanScene() {
     timeUniform.value = timeRef.current;
     camera.getWorldDirection(cameraForward);
   });
+
+  /* ---- Abandon-ship animation queue ---- */
+  const [abandonBoats, setAbandonBoats] = useState<AbandonBoatEntry[]>([]);
+  const prevCrewRef = useRef<Record<string, string>>({});
+
+  useEffect(() => {
+    const prevStatuses = prevCrewRef.current;
+    const newBoats: AbandonBoatEntry[] = [];
+
+    for (const member of crew) {
+      if (
+        member.status === "abandoned" &&
+        prevStatuses[member.id] === "active"
+      ) {
+        newBoats.push({
+          id: `${member.id}-${Date.now()}`,
+          startX: shipPosRef.current.x,
+          startZ: shipPosRef.current.z,
+          directionAngle: Math.random() * Math.PI * 2,
+        });
+      }
+    }
+
+    // Update previous statuses
+    const next: Record<string, string> = {};
+    for (const m of crew) {
+      next[m.id] = m.status;
+    }
+    prevCrewRef.current = next;
+
+    if (newBoats.length > 0) {
+      setAbandonBoats((prev) => [...prev, ...newBoats]);
+    }
+  }, [crew]);
+
+  const removeBoat = useCallback((id: string) => {
+    setAbandonBoats((prev) => prev.filter((b) => b.id !== id));
+  }, []);
 
   return (
     <Suspense fallback={null}>
@@ -173,7 +201,22 @@ export function OceanScene() {
           waterlineY={waterline.waterlineY}
         />
       )}
-      <Ship onWaterlineReady={onWaterlineReady} />
+      <WakeTrail navigation={navigation} />
+      <Ship
+        onWaterlineReady={onWaterlineReady}
+        navigation={navigation}
+        onPositionUpdate={onShipPositionUpdate}
+      />
+      <TreasureChestField chests={treasureChests} />
+      {abandonBoats.map((boat) => (
+        <AbandonShipBoat
+          key={boat.id}
+          startX={boat.startX}
+          startZ={boat.startZ}
+          directionAngle={boat.directionAngle}
+          onComplete={() => removeBoat(boat.id)}
+        />
+      ))}
     </Suspense>
   );
 }

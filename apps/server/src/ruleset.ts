@@ -8,6 +8,10 @@ import {
   createStartRoundThunk,
   createCollectTokenThunk,
   createEndRoundThunk,
+  createSetHeadingThunk,
+  createLayAnchorThunk,
+  createSpawnChestsThunk,
+  createSeekResourcesThunk,
 } from "./thunks.js";
 import { createPhases } from "./phases.js";
 
@@ -28,6 +32,10 @@ export function createGameRuleset(
       START_ROUND: createStartRoundThunk(services),
       COLLECT_TOKEN: createCollectTokenThunk(services),
       END_ROUND: createEndRoundThunk(services),
+      SET_HEADING: createSetHeadingThunk(services),
+      LAY_ANCHOR: createLayAnchorThunk(services),
+      SPAWN_CHESTS: createSpawnChestsThunk(services),
+      SEEK_RESOURCES: createSeekResourcesThunk(services),
     },
     phases: createPhases(services),
   };

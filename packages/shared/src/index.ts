@@ -1,4 +1,17 @@
-export type { Token, PlayerPosition, TokenRaiderState } from "./types.js";
+export type {
+  Token,
+  PlayerPosition,
+  TokenRaiderState,
+  ShipNavigation,
+  ShipHeading,
+  CrewMemberId,
+  CrewStatus,
+  ChestType,
+  CrewNeeds,
+  CrewMember,
+  TreasureChest,
+  FirstMateSpeech,
+} from "./types.js";
 
 export {
   TIMER_DURATION_MS,
@@ -10,6 +23,22 @@ export {
   MAX_ROUNDS,
   FTUE_ROUNDS,
   ROUND_BONUS_MULTIPLIER,
+  SHIP_MAX_SPEED,
+  SHIP_ACCELERATION,
+  SHIP_DECELERATION,
+  SHIP_TURN_SPEED,
+  SHIP_TICK_MS,
+  CREW_INITIAL_FOOD,
+  CREW_INITIAL_MORALE,
+  NEED_DECAY_FOOD_PER_SEC,
+  NEED_DECAY_MORALE_PER_SEC,
+  CHEST_FOOD_VALUE,
+  CHEST_MORALE_VALUE,
+  CHEST_SPAWN_COUNT,
+  CHEST_COLLECT_RADIUS,
+  FIRST_MATE_WARN_THRESHOLD,
+  FIRST_MATE_DIRE_THRESHOLD,
+  FIRST_MATE_SPEECH_DURATION_MS,
 } from "./constants.js";
 
-export { createInitialGameState } from "./state.js";
+export { createInitialGameState, createInitialCrew } from "./state.js";

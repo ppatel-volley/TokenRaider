@@ -1,24 +1,71 @@
 import { useCallback, useRef } from "react";
 import { useStateSyncSelector, useDispatchThunk } from "../hooks/useVGFState";
+import type { ShipHeading } from "@token-raider/shared";
+
+/* ------------------------------------------------------------------ */
+/*  Inline styles for ship navigation buttons (phone controller)       */
+/* ------------------------------------------------------------------ */
+
+const NAV_BTN: React.CSSProperties = {
+  padding: "12px 0",
+  fontSize: 15,
+  fontWeight: 600,
+  border: "1px solid rgba(255,255,255,0.25)",
+  borderRadius: 8,
+  background: "rgba(0,0,0,0.45)",
+  color: "#fff",
+  cursor: "pointer",
+  flex: 1,
+  textAlign: "center",
+  WebkitTapHighlightColor: "transparent",
+  touchAction: "manipulation",
+};
+
+const ANCHOR_BTN: React.CSSProperties = {
+  ...NAV_BTN,
+  background: "rgba(180,60,60,0.55)",
+  flex: "none",
+  width: "100%",
+  padding: "14px 0",
+};
+
+const NAV_GRID: React.CSSProperties = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: 8,
+  padding: "0 16px",
+  marginTop: 12,
+};
 
 export function PlayingController() {
   const score = useStateSyncSelector((s) => s.score);
   const tokensRemaining = useStateSyncSelector((s) => s.tokensRemaining);
   const timerStartedAt = useStateSyncSelector((s) => s.timerStartedAt);
   const timerDuration = useStateSyncSelector((s) => s.timerDuration);
+  const crew = useStateSyncSelector((s) => s.crew ?? []);
+  const activeCrew = crew.filter((c: { status: string }) => c.status === "active").length;
+  const seeking = useStateSyncSelector((s) => s.shipNavigation?.seekingResources ?? false);
   const dispatchThunk = useDispatchThunk();
   const micActiveRef = useRef(false);
 
-  const sendDirection = useCallback(
-    (direction: "up" | "down" | "left" | "right") => {
-      dispatchThunk("MOVE", direction);
-    },
+  /* -- Ship heading helpers ---------------------------------------- */
+
+  const setHeading = useCallback(
+    (heading: ShipHeading) => dispatchThunk("SET_HEADING", heading),
     [dispatchThunk],
   );
 
-  const handleCollect = useCallback(() => {
-    dispatchThunk("COLLECT");
-  }, [dispatchThunk]);
+  const layAnchor = useCallback(
+    () => dispatchThunk("LAY_ANCHOR"),
+    [dispatchThunk],
+  );
+
+  const seekResources = useCallback(
+    () => dispatchThunk("SEEK_RESOURCES"),
+    [dispatchThunk],
+  );
+
+  /* -- Legacy callbacks (kept for future token / voice features) ---- */
 
   const handleMicDown = useCallback(() => {
     if (micActiveRef.current) return;
@@ -46,13 +93,45 @@ export function PlayingController() {
           <span className="hud-value">{score}</span>
         </div>
         <div className="hud-item">
-          <span className="hud-label">Tokens</span>
-          <span className="hud-value">{tokensRemaining}</span>
+          <span className="hud-label">Crew</span>
+          <span className="hud-value">{activeCrew}/{crew.length}</span>
         </div>
         <div className="hud-item">
           <span className="hud-label">Time</span>
           <span className="hud-value">{secondsLeft}s</span>
         </div>
+      </div>
+
+      {/* Ship navigation controls */}
+      <div style={NAV_GRID}>
+        <button
+          type="button"
+          style={{
+            ...NAV_BTN,
+            background: seeking ? "rgba(20,184,166,0.7)" : "rgba(20,184,166,0.35)",
+            border: seeking ? "1px solid rgba(20,184,166,0.8)" : NAV_BTN.border,
+            flex: "none",
+            width: "100%",
+          }}
+          onClick={seekResources}
+        >
+          🧭 Seek Resources
+        </button>
+        <button type="button" style={NAV_BTN} onClick={() => setHeading("north")}>
+          ⬆ North
+        </button>
+        <button type="button" style={NAV_BTN} onClick={() => setHeading("south")}>
+          ⬇ South
+        </button>
+        <button type="button" style={NAV_BTN} onClick={() => setHeading("east")}>
+          ➡ East
+        </button>
+        <button type="button" style={NAV_BTN} onClick={() => setHeading("west")}>
+          ⬅ West
+        </button>
+        <button type="button" style={ANCHOR_BTN} onClick={layAnchor}>
+          ⚓ Lay Anchor
+        </button>
       </div>
 
       {/* Push-to-talk mic button */}
@@ -76,52 +155,6 @@ export function PlayingController() {
         </svg>
         <span>Hold to Talk</span>
       </button>
-
-      {/* Directional pad */}
-      <div className="dpad">
-        <button
-          className="dpad-btn dpad-up"
-          onTouchStart={() => sendDirection("up")}
-          type="button"
-          aria-label="Move up"
-        >
-          &#9650;
-        </button>
-        <div className="dpad-middle-row">
-          <button
-            className="dpad-btn dpad-left"
-            onTouchStart={() => sendDirection("left")}
-            type="button"
-            aria-label="Move left"
-          >
-            &#9664;
-          </button>
-          <button
-            className="collect-btn"
-            onTouchStart={handleCollect}
-            type="button"
-            aria-label="Collect token"
-          >
-            Collect
-          </button>
-          <button
-            className="dpad-btn dpad-right"
-            onTouchStart={() => sendDirection("right")}
-            type="button"
-            aria-label="Move right"
-          >
-            &#9654;
-          </button>
-        </div>
-        <button
-          className="dpad-btn dpad-down"
-          onTouchStart={() => sendDirection("down")}
-          type="button"
-          aria-label="Move down"
-        >
-          &#9660;
-        </button>
-      </div>
     </div>
   );
 }
